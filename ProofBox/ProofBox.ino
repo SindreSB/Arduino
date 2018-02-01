@@ -62,9 +62,13 @@ void checkConnection()
 }
 
 void controlHeaterElement() {
-	if (ambientTemp < 28)
+	if (ambientTemp < 24 || heaterTemp < 26)
 	{
 		heaterPower = HIGH;
+	}
+	else if (heaterTemp > 40) 
+	{
+		heaterPower = LOW;
 	}
 	else {
 		heaterPower = LOW;
