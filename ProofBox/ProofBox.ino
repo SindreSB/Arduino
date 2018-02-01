@@ -1,10 +1,9 @@
 #define BLYNK_PRINT Serial
 
-#include <OneWire.h>
-#include <DallasTemperature.h>
 #include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>
 #include <DHT.h>
+#include <DallasTemperature.h>
 
 // You should get Auth Token in the Blynk App.
 // Go to the Project Settings (nut icon).
@@ -51,6 +50,8 @@ void readAmbientSensor()
 void readDigitalThermometerTemp() {
 	sensors.requestTemperatures();
 	heaterTemp = sensors.getTempCByIndex(0);
+	Serial.print("Heatertemp is: ");
+	Serial.println(heaterTemp);
 }
 
 void checkConnection()
@@ -89,9 +90,9 @@ void setup() {
 
 	pinMode(HEATERPIN, OUTPUT);
 
-	ambientTempTimer.setInterval(2000L, readAmbientSensor);
+	ambientTempTimer.setInterval(5000L, readAmbientSensor);
 	heaterTempTimer.setInterval(1000L, readDigitalThermometerTemp);
-	heaterTimer.setInterval(100L, controlHeaterElement);
+	heaterTimer.setInterval(1000L, controlHeaterElement);
 	connectionTimer.setInterval(10000L, checkConnection);
 	dataTimer.setInterval(200L, sendDataToBlynk);
 }
@@ -101,6 +102,7 @@ void loop()
 	Blynk.run();
 
 	ambientTempTimer.run();
+	heaterTempTimer.run();
 	heaterTimer.run();
 	connectionTimer.run();
 	dataTimer.run();
