@@ -18,6 +18,7 @@ The current state is stored in EEPROM and restored on bootup
 
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include <Servo.h>
 
 
 const char* ssid = "";
@@ -35,8 +36,11 @@ int value = 0;
 const char* outTopic = "Sonoff1out";
 const char* inTopic = "test";
 
-int relay_pin = D0;
-bool relayState = LOW;
+int servo_pin = D1;
+Servo servo;
+
+int led_pin = D0;
+bool ledState = LOW;
 
 
 void setup_wifi() {
@@ -71,20 +75,20 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 	// Switch on the LED if an 1 was received as first character
 	if ((char)payload[0] == '0') {
-		digitalWrite(relay_pin, LOW);   // Turn the LED on (Note that LOW is the voltage level
+		digitalWrite(led_pin, LOW);   // Turn the LED on (Note that LOW is the voltage level
 		Serial.println("relay_pin -> LOW");
-		relayState = LOW;
+		ledState = LOW;
 	}
 	else if ((char)payload[0] == '1') {
-		digitalWrite(relay_pin, HIGH);  // Turn the LED off by making the voltage HIGH
+		digitalWrite(led_pin, HIGH);  // Turn the LED off by making the voltage HIGH
 		Serial.println("relay_pin -> HIGH");
-		relayState = HIGH;
+		ledState = HIGH;
 	}
 	else if ((char)payload[0] == '2') {
-		relayState = !relayState;
-		digitalWrite(relay_pin, relayState);  // Turn the LED off by making the voltage HIGH
+		ledState = !ledState;
+		digitalWrite(led_pin, ledState);  // Turn the LED off by making the voltage HIGH
 		Serial.print("relay_pin -> switched to ");
-		Serial.println(relayState);
+		Serial.println(ledState);
 	}
 }
 
@@ -111,10 +115,11 @@ void reconnect() {
 }
 
 void setup() {
-	pinMode(relay_pin, OUTPUT);     // Initialize the relay pin as an output
-	
-	// Write PWM signal here
-	digitalWrite(relay_pin, relayState);
+	pinMode(led_pin, OUTPUT);     // Initialize the relay pin as an output
+	digitalWrite(led_pin, ledState);
+
+	//Servo
+	servo.attach(servo_pin);
 
 
 	Serial.begin(115200);
