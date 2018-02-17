@@ -64,6 +64,12 @@ void setup_wifi() {
 	Serial.println(WiFi.localIP());
 }
 
+void pressOpenButton() {
+	servo.write(130);
+	delay(200);
+	servo.write(90);
+}
+
 void callback(char* topic, byte* payload, unsigned int length) {
 	Serial.print("Message arrived [");
 	Serial.print(topic);
@@ -83,6 +89,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 		digitalWrite(led_pin, HIGH);  // Turn the LED off by making the voltage HIGH
 		Serial.println("relay_pin -> HIGH");
 		ledState = HIGH;
+		pressOpenButton();
 	}
 	else if ((char)payload[0] == '2') {
 		ledState = !ledState;
@@ -97,7 +104,7 @@ void reconnect() {
 	while (!client.connected()) {
 		Serial.print("Attempting MQTT connection...");
 		// Attempt to connect
-		if (client.connect("ESP8266Client")) {
+		if (client.connect("dooropener-4j2jh9a")) {
 			Serial.println("connected");
 			// Once connected, publish an announcement...
 			client.publish(outTopic, "Sonoff1 booted");
