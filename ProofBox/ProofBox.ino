@@ -85,14 +85,15 @@ void sendDataToBlynk() {
 }
 
 void setup() {
+	pinMode(HEATERPIN, OUTPUT);
+	digitalWrite(HEATERPIN, LOW);
+	
 	// Debug console
 	Serial.begin(9600);
 
 	Blynk.begin(auth, ssid, pass);
 
 	dht.begin();
-
-	pinMode(HEATERPIN, OUTPUT);
 
 	ambientTempTimer.setInterval(5000L, readAmbientSensor);
 	heaterTempTimer.setInterval(1000L, readDigitalThermometerTemp);
