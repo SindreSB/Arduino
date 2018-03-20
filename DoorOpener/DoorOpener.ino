@@ -1,47 +1,43 @@
 /*
 
 It connects to an MQTT server then:
-- on 0 switches off relay
-- on 1 switches on relay
-- on 2 switches the state of the relay
+- on "UNLOCK" uses to servo to push the unlock button
 
-- sends 0 on off relay
-- sends 1 on on relay
 
 It will reconnect to the server if the connection is lost using a blocking
-reconnect function. See the 'mqtt_reconnect_nonblocking' example for how to
-achieve the same result without blocking the main loop.
-
-The current state is stored in EEPROM and restored on bootup
-
+reconnect function. 
 */
 
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <Servo.h>
 
-
+// WiFi settings
 const char* ssid = "";
 const char* password = "";
+
+// MQTT settings
 const char* mqtt_server = "";
 const int mqtt_server_port = 1883;
 
+const char* mqtt_username = "";
+const char* mqtt_password = "";
+const char* mqtt_deviceId = "dooropener-4j2jh9a";
+
+const char* stateTopic = "home/frontdoor/";
+const char* commandTopic = "home/frontdoor/set/";
+
+// Init WiFi client and PubSubClient
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-long lastMsg = 0;
-char msg[50];
-int value = 0;
-
-const char* outTopic = "Sonoff1out";
-const char* inTopic = "test";
-
+// Servo settings
 int servo_pin = D1;
+int servo_power_pin = D2;
 Servo servo;
 
-int led_pin = D0;
-bool ledState = LOW;
-
+#define POWER_SERVO_ON digitalWrite(servo_power_pin, HIGH); delay(250);
+#define POWER_SERVO_OFF delay(250); digitalWrite(servo_power_pin, LOW);
 
 void setup_wifi() {
 
@@ -65,38 +61,29 @@ void setup_wifi() {
 }
 
 void pressOpenButton() {
+	client.publish(stateTopic, "UNLOCK");
+	POWER_SERVO_ON
 	servo.write(130);
-	delay(200);
+	delay(250);
 	servo.write(90);
+	POWER_SERVO_OFF
+	client.publish(stateTopic, "LOCK");
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
-	Serial.print("Message arrived [");
-	Serial.print(topic);
-	Serial.print("] ");
-	for (int i = 0; i < length; i++) {
-		Serial.print((char)payload[i]);
+	char* message = new char[length + 1];
+	message[length] = '\0';
+	
+	for (int i = 0; i < length; i++)
+	{
+		message[i] = (char)payload[i];
 	}
-	Serial.println();
-
-	// Switch on the LED if an 1 was received as first character
-	if ((char)payload[0] == '0') {
-		digitalWrite(led_pin, LOW);   // Turn the LED on (Note that LOW is the voltage level
-		Serial.println("relay_pin -> LOW");
-		ledState = LOW;
-	}
-	else if ((char)payload[0] == '1') {
-		digitalWrite(led_pin, HIGH);  // Turn the LED off by making the voltage HIGH
-		Serial.println("relay_pin -> HIGH");
-		ledState = HIGH;
+	
+	if(strcmp(message, "UNLOCK") == 0) {
 		pressOpenButton();
 	}
-	else if ((char)payload[0] == '2') {
-		ledState = !ledState;
-		digitalWrite(led_pin, ledState);  // Turn the LED off by making the voltage HIGH
-		Serial.print("relay_pin -> switched to ");
-		Serial.println(ledState);
-	}
+
+	delete[] message;
 }
 
 void reconnect() {
@@ -104,12 +91,12 @@ void reconnect() {
 	while (!client.connected()) {
 		Serial.print("Attempting MQTT connection...");
 		// Attempt to connect
-		if (client.connect("dooropener-4j2jh9a")) {
+		if (client.connect(mqtt_deviceId, mqtt_username, mqtt_password)) {
 			Serial.println("connected");
-			// Once connected, publish an announcement...
-			client.publish(outTopic, "Sonoff1 booted");
-			// ... and resubscribe
-			client.subscribe(inTopic);
+			// Publish state
+			client.publish(stateTopic, "LOCK");
+			// Subscribe to command topic
+			client.subscribe(commandTopic);
 		}
 		else {
 			Serial.print("failed, rc=");
@@ -122,15 +109,19 @@ void reconnect() {
 }
 
 void setup() {
-	pinMode(led_pin, OUTPUT);     // Initialize the relay pin as an output
-	digitalWrite(led_pin, ledState);
-
 	//Servo
+	pinMode(servo_power_pin, OUTPUT);
+	digitalWrite(servo_power_pin, LOW);
+
 	servo.attach(servo_pin);
 
-
+	// Set serial speed
 	Serial.begin(115200);
-	setup_wifi();                   // Connect to wifi 
+	
+	// Connect to wifi 
+	setup_wifi();      
+
+	// Set up client
 	client.setServer(mqtt_server, mqtt_server_port);
 	client.setCallback(callback);
 }
