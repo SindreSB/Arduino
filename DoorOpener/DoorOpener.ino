@@ -26,6 +26,7 @@ const char* mqtt_deviceId = "dooropener-4j2jh9a";
 
 const char* stateTopic = "home/frontdoor/";
 const char* commandTopic = "home/frontdoor/set/";
+const char* availabilityTopic = "home/frontdoor/available/";
 
 // Init WiFi client and PubSubClient
 WiFiClient espClient;
@@ -36,8 +37,8 @@ int servo_pin = D1;
 int servo_power_pin = D2;
 Servo servo;
 
-#define POWER_SERVO_ON digitalWrite(servo_power_pin, HIGH); delay(250);
-#define POWER_SERVO_OFF delay(250); digitalWrite(servo_power_pin, LOW);
+#define POWER_SERVO_ON digitalWrite(servo_power_pin, HIGH); delay(300);
+#define POWER_SERVO_OFF delay(300); digitalWrite(servo_power_pin, LOW);
 
 void setup_wifi() {
 
@@ -64,7 +65,7 @@ void pressOpenButton() {
 	client.publish(stateTopic, "UNLOCK");
 	POWER_SERVO_ON
 	servo.write(130);
-	delay(250);
+	delay(300);
 	servo.write(90);
 	POWER_SERVO_OFF
 	client.publish(stateTopic, "LOCK");
@@ -82,6 +83,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
 	if(strcmp(message, "UNLOCK") == 0) {
 		pressOpenButton();
 	}
+	else if (strcmp(message, "PING") == 0) {
+		client.publish(availabilityTopic, "PONG");
+	}
 
 	delete[] message;
 }
@@ -97,6 +101,8 @@ void reconnect() {
 			client.publish(stateTopic, "LOCK");
 			// Subscribe to command topic
 			client.subscribe(commandTopic);
+			// Subscribe to availability topic. 
+			client.subscribe(availabilityTopic);
 		}
 		else {
 			Serial.print("failed, rc=");
@@ -127,6 +133,11 @@ void setup() {
 }
 
 void loop() {
+
+	if (!WiFi.isConnected())
+	{
+		setup_wifi();
+	}
 
 	if (!client.connected()) {
 		reconnect();
