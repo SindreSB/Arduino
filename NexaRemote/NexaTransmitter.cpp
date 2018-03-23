@@ -3,7 +3,7 @@
 #else
 #include "WProgram.h"
 #endif
-#include "tx433_Nexa.h"
+#include "NexaTransmitter.h"
 
 
 NexaTransmitter::NexaTransmitter(short pin, unsigned long remote) :

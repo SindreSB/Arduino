@@ -13,6 +13,9 @@ public:
 	//arg2 = unit number 0-15
 	//arg3 = dimmer level 0-15
 	void setSwitch(bool, short, short level = 0);
+
+	// Change id
+	void setTransmiterId(unsigned long id) { transmitterId = id; }
 private:
 	short txPin;
 	unsigned long transmitterId;
