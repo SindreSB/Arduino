@@ -22,7 +22,7 @@ const char* mqtt_password = "";
 const char* mqtt_deviceId = "nexabridge-4j2jh9a";
 
 
-const char* stateTopic = "home/lights/nexa/+/";
+const char* stateTopic = "home/lights/nexa/";
 const char* commandTopic = "home/lights/nexa/+/set/";
 const char* availabilityTopic = "home/lights/nexa/available/";
 
@@ -53,18 +53,32 @@ void setup_wifi() {
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
+	Serial.print("Received message with topic: ");
+	Serial.println(topic);
 	// Get topic and use as sender id
-	int id = strtol(topic, nullptr, 10);
+	int id = strtol(topic + 17, nullptr, 10);
 
-	bool turnOn = strcmp((char*)payload, "ON");
+	char* message = new char[length + 1];
+	message[length] = '\0';
 
+	for (int i = 0; i < length; i++)
+	{
+		message[i] = (char)payload[i];
+	}
+
+	bool turnOn = strcmp((char*)message, "ON") == 0;
+
+	delete[] message;
+
+
+	
 	Serial.print("Issuing: ");
-	Serial.print(topic);
+	Serial.print(id);
 	Serial.print(" ");
-	Serial.println((char*)payload);
+	Serial.println(turnOn);
 
 	remote.setTransmiterId(id);
-	remote.setSwitch(turnOn, 0);
+	remote.setSwitch(turnOn, 2);
 }
 
 void reconnect() {
@@ -77,7 +91,6 @@ void reconnect() {
 		if (client.connect(mqtt_deviceId, mqtt_username, mqtt_password)) {
 			Serial.println("connected");
 			// Publish state
-			client.publish(stateTopic, "OFF");
 			// Subscribe to command topic
 			client.subscribe(commandTopic);
 			// Subscribe to availability topic. 
@@ -121,16 +134,3 @@ void loop() {
 
 	client.loop();
 }
-
-
-
-//void loop() {
-//
-//	Serial.println("On");
-//	remote.setSwitch(true, 2); // switch on the unit 2 to dim level 10 (out of 15)
-//	delay(3000);
-//	Serial.println("Off");// wait 3 sec
-//	remote.setSwitch(false, 2);    // switch off the unit 2
-//	delay(3000);
-//	
-//}
